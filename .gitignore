@@ -36,4 +36,10 @@ out/
 ### VS Code ###
 .vscode/
 
+.idea/
+
+target/
+
+logs/
+
 application-dev.yaml
