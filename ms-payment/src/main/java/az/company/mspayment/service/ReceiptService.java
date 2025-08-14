@@ -1,0 +1,51 @@
+package az.company.mspayment.service;
+
+import az.company.mspayment.dao.entity.PaymentEntity;
+import com.lowagie.text.Document;
+import com.lowagie.text.Image;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.PdfWriter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.awt.image.BufferedImage;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import javax.imageio.ImageIO;
+
+@Service
+public class ReceiptService {
+
+    private final Path receiptDirectory;
+    private final QRCodeService qrService;
+
+    public ReceiptService(@Value("${receipts.dir:./receipts}") String dir,
+                          QRCodeService qrService) throws Exception {
+        this.receiptDirectory = Paths.get(dir);
+        Files.createDirectories(receiptDirectory);
+        this.qrService = qrService;
+    }
+
+    public Path generateReceipt(PaymentEntity payment) {
+        try {
+            Path out = receiptDirectory.resolve("receipt-" + payment.getId() + ".pdf");
+            try (OutputStream os = Files.newOutputStream(out)) {
+                Document doc = new Document();
+                PdfWriter.getInstance(doc, os);
+                doc.open();
+                doc.add(new Paragraph("PaySnap Receipt"));
+                doc.add(new Paragraph("Order ID: " + payment.getId()));
+                doc.add(new Paragraph("Amount: " + payment.getAmount() + " " + payment.getCurrency()));
+                doc.add(new Paragraph("Description: " + payment.getDescription()));
+                doc.add(new Paragraph("Status: " + payment.getStatus()));
+                doc.add(new Paragraph("Completed At: " + payment.getCompletedAt()));
+                doc.close();
+            }
+            return out;
+        } catch (Exception e) {
+            throw new IllegalStateException("PDF generation failed", e);
+        }
+    }
+}

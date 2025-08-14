@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: ms-auth
+jwt:
+  secret-key:
+  token-validity-ms: 3600000
+server:
+  port: 8085
+
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka
+#    register-with-eureka: true
+#    fetch-registry: true

@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: ms-user
+              uri: http://localhost:8082
+              predicates:
+                - Path=/user/**,/admin/**
+
+            - id: ms-payment
+              uri: http://localhost:8083
+              predicates:
+                - Path=/payments/**,/qr/**,/receipts/**,/pay/**
+
+            - id: ms-auth
+              uri: http://localhost:8085
+              predicates:
+                - Path=/auth/**
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret-key:
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: ms-product
+        url: http://localhost:8080/v3/api-docs
+      - name: ms-payment
+        url: http://localhost:8083/v3/api-docs
+      - name: ms-order
+        url: http://localhost:8085/v3/api-docs

@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: ms-payment
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payment-database
+    username:
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username:
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls.enable: true
+          ssl.trust: smtp.gmail.com
+server:
+  port: 8083
+
+stripe:
+  secret-key:
+  webhook-secret:
+  session-ttl-minutes: 15
+  success-url:
+  cancel-url:
+
+mail:
+  from:

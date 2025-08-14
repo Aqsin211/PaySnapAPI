@@ -1,0 +1,121 @@
+package az.company.gateway.filter;
+
+import io.jsonwebtoken.*;
+
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
+
+import static org.springframework.http.HttpMethod.POST;
+
+@Component
+public class JwtGatewayFilter implements GlobalFilter, Ordered {
+
+    private final Key key;
+    private final ReactiveStringRedisTemplate redisTemplate;
+    private static final String BLACKLIST_PREFIX = "blacklist:";
+
+    public JwtGatewayFilter(@Value("${jwt.secret-key}") String secret,
+                            ReactiveStringRedisTemplate redisTemplate) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.redisTemplate = redisTemplate;
+    }
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
+        String path = exchange.getRequest().getURI().getPath();
+
+        // allow public endpoints (make configurable)
+        if (isPublic(path, exchange)) {
+            return chain.filter(exchange);
+        }
+
+        String auth = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+
+        String token = auth.substring(7);
+        Claims claims;
+        try {
+            claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+
+        } catch (JwtException e) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+
+        String jti = claims.getId();
+        if (jti == null) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+
+        String redisKey = BLACKLIST_PREFIX + jti;
+
+        // check redis (reactive)
+        return redisTemplate.hasKey(redisKey)
+                .flatMap(isBlacklisted -> {
+                    if (Boolean.TRUE.equals(isBlacklisted)) {
+                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        return exchange.getResponse().setComplete();
+                    }
+
+                    ServerHttpRequest mutated = exchange.getRequest().mutate()
+                            .header("X-User-ID", String.valueOf(claims.get("userId")))
+                            .header("X-Username", claims.get("username", String.class))
+                            .header("X-role", claims.get("role", String.class))
+                            .header("X-Internal-Gateway", "true")
+                            .build();
+
+                    return chain.filter(exchange.mutate().request(mutated).build());
+                });
+    }
+
+    private boolean isPublic(String path, ServerWebExchange exchange) {
+        HttpMethod method = exchange.getRequest().getMethod();
+
+        if (path.equals("/auth") && POST.equals(method)) {
+            return true;
+        }
+
+        if (path.startsWith("/user") && POST.equals(method)) {
+            return true;
+        }
+
+        if (path.startsWith("/admin") && POST.equals(method)) {
+            return true;
+        }
+
+        if (path.startsWith("/pay/")) {
+            return true;
+        }
+
+
+        return false;
+    }
+
+
+
+    @Override
+    public int getOrder() {
+        return -100; // high priority
+    }
+}
