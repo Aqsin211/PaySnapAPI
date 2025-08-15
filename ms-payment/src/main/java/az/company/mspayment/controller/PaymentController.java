@@ -3,6 +3,7 @@ package az.company.mspayment.controller;
 import az.company.mspayment.model.request.PaymentRequest;
 import az.company.mspayment.model.response.PaymentResponse;
 import az.company.mspayment.service.PaymentService;
+import az.company.mspayment.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,10 +22,14 @@ public class PaymentController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<PaymentResponse> create(@Valid @RequestBody PaymentRequest paymentRequest,
-                                                  @RequestHeader("X-User-ID") Long userId) throws Exception {
+    public ResponseEntity<PaymentResponse> create(@Valid @RequestBody PaymentRequest paymentRequest) throws Exception {
+        Long userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
         return ResponseEntity.ok(paymentService.createCheckout(userId, paymentRequest));
     }
+
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
@@ -34,7 +39,11 @@ public class PaymentController {
 
     @GetMapping("/history")
     @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<List<PaymentResponse>> history(@RequestHeader("X-User-ID") Long userId) {
+    public ResponseEntity<List<PaymentResponse>> history() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
         return ResponseEntity.ok(paymentService.history(userId));
     }
 

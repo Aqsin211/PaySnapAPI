@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @RestController
-@RequestMapping("/qr")
+@RequestMapping("/payment/qr")
 public class QRController {
     private final QRCodeService qrService;
     private final PaymentService paymentService;
@@ -34,7 +34,7 @@ public class QRController {
         this.paymentService = paymentService;
     }
 
-    @GetMapping("/payment/{id}/png")
+    @GetMapping("/{id}/png")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<byte[]> qr(@PathVariable Long id) {
         var payment = paymentService.get(id);
@@ -44,7 +44,7 @@ public class QRController {
                 .body(png);
     }
 
-    @GetMapping("/payment/{id}/png-download")
+    @GetMapping("/{id}/png-download")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<FileSystemResource> downloadQr(@PathVariable Long id) throws IOException {
         var payment = paymentService.get(id);
@@ -60,7 +60,7 @@ public class QRController {
                 .body(resource);
     }
 
-    @GetMapping("/payment/{id}/pdf-download")
+    @GetMapping("/{id}/pdf-download")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<FileSystemResource> downloadQrPdf(@PathVariable Long id) throws IOException, DocumentException {
         var payment = paymentService.get(id);

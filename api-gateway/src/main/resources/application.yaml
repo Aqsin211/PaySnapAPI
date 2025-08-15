@@ -19,7 +19,7 @@ spring:
             - id: ms-payment
               uri: http://localhost:8083
               predicates:
-                - Path=/payments/**,/pay/**
+                - Path="/qr/**",/receipts/**,/payments/**,/pay/**
               filters:
                 - RewritePath=/payments/v3/api-docs(?<segment>/.*)?, /v3/api-docs${segment}
 
