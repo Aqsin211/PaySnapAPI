@@ -39,18 +39,28 @@ public class PaymentEntity {
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
-    @Column(columnDefinition = "text")
+
+    @Column(name = "stripe_payment_intent_id", columnDefinition = "text")
     private String stripePaymentIntentId;
+
     @Column(columnDefinition = "text")
     private String stripeSessionId;
 
-    @Column(columnDefinition = "text")
+    @Column(name = "checkout_url", columnDefinition = "text")
     private String checkoutUrl;
-    @Column(columnDefinition = "text")
+
+    @Column(name = "short_url")
     private String shortUrl;
+
+    @Column(name = "created_at")
     private OffsetDateTime createdAt;
+
+    @Column(name = "expires_at")
     private OffsetDateTime expiresAt;
+
+    @Column(name = "completed_at")
     private OffsetDateTime completedAt;
 
+    @Column(name = "receipt_file_path")
     private String receiptFilePath;
 }

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static az.company.msauth.model.enums.ErrorMessages.SERVER_ERROR;
+import static az.company.msauth.model.enums.ErrorMessages.UNAUTHORIZED_ACCESS;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -24,7 +25,7 @@ public class ErrorHandler {
     @ResponseStatus(UNAUTHORIZED)
     public ErrorResponse handle(UnauthorizedException exception) {
         return ErrorResponse.builder()
-                .message(exception.getMessage())
+                .message(UNAUTHORIZED_ACCESS.getMessage())
                 .timestamp(LocalDateTime.now())
                 .status(UNAUTHORIZED.value())
                 .build();

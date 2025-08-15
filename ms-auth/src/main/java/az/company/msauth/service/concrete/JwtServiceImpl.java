@@ -1,5 +1,6 @@
-package az.company.msauth.security;
+package az.company.msauth.service.concrete;
 
+import az.company.msauth.service.abstraction.JwtService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,18 +13,19 @@ import java.util.UUID;
 import java.util.function.Function;
 
 @Component
-public class JwtService {
+public class JwtServiceImpl implements JwtService {
 
     private final Key key;
     private final long tokenValidityMillis;
 
-    public JwtService(
+    public JwtServiceImpl(
             @Value("${jwt.secret-key}") String secret,
             @Value("${jwt.token-validity-ms:3600000}") long tokenValidityMillis) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.tokenValidityMillis = tokenValidityMillis;
     }
 
+    @Override
     public String generateToken(Long userId, String username, String role) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + tokenValidityMillis);
@@ -40,6 +42,7 @@ public class JwtService {
                 .compact();
     }
 
+    @Override
     public Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -48,16 +51,19 @@ public class JwtService {
                 .getBody();
     }
 
+    @Override
     public long getRemainingMillis(String token) {
         Date exp = parseClaims(token).getExpiration();
         long rem = exp.getTime() - System.currentTimeMillis();
         return Math.max(rem, 0L);
     }
 
+    @Override
     public <T> T extract(String token, Function<Claims, T> resolver) {
         return resolver.apply(parseClaims(token));
     }
 
+    @Override
     public String extractJti(String token) {
         return extract(token, Claims::getId);
     }

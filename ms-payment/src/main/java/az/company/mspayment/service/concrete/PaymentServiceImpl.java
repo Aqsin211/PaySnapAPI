@@ -1,10 +1,11 @@
-package az.company.mspayment.service;
+package az.company.mspayment.service.concrete;
 
 import az.company.mspayment.dao.entity.PaymentEntity;
 import az.company.mspayment.dao.repository.PaymentRepository;
 import az.company.mspayment.model.enums.PaymentStatus;
 import az.company.mspayment.model.request.PaymentRequest;
 import az.company.mspayment.model.response.PaymentResponse;
+import az.company.mspayment.service.abstraction.PaymentService;
 import az.company.mspayment.util.Base62;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -21,29 +22,30 @@ import java.util.List;
 import static az.company.mspayment.model.mapper.PaymentMapper.PAYMENT_MAPPER;
 
 @Service
-public class PaymentService {
+public class PaymentServiceImpl implements PaymentService {
 
-    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
+    private static final Logger log = LoggerFactory.getLogger(PaymentServiceImpl.class);
 
     private final PaymentRepository paymentRepository;
     private final int ttlMinutes;
     private final String successUrl;
     private final String cancelUrl;
 
-    public PaymentService(PaymentRepository paymentRepository,
-                          @Value("${stripe.session-ttl-minutes:15}") int ttlMinutes,
-                          @Value("${stripe.success-url}") String successUrl,
-                          @Value("${stripe.cancel-url}") String cancelUrl) {
+    public PaymentServiceImpl(PaymentRepository paymentRepository,
+                              @Value("${stripe.session-ttl-minutes:15}") int ttlMinutes,
+                              @Value("${stripe.success-url}") String successUrl,
+                              @Value("${stripe.cancel-url}") String cancelUrl) {
         this.paymentRepository = paymentRepository;
         this.ttlMinutes = ttlMinutes;
         this.successUrl = successUrl;
         this.cancelUrl = cancelUrl;
     }
 
+    @Override
     public PaymentResponse createCheckout(Long userId, PaymentRequest paymentRequest) throws StripeException {
         OffsetDateTime now = OffsetDateTime.now();
 
-        // 1) persist local payment
+        //persisting local payment
         PaymentEntity payment = PaymentEntity.builder()
                 .userId(userId)
                 .amount(paymentRequest.getAmount())
@@ -58,7 +60,7 @@ public class PaymentService {
 
         log.info("[PAYMENT] Saved initial local payment id={}", payment.getId());
 
-        // 2) Generate Stripe session
+        //Generating Stripe session
         SessionCreateParams.LineItem.PriceData.ProductData product =
                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
                         .setName(paymentRequest.getDescription())
@@ -110,22 +112,26 @@ public class PaymentService {
         return PAYMENT_MAPPER.mapEntityToResponse(payment);
     }
 
-
-    private String generateShortLink(PaymentEntity payment) {
-        // Simple Base62 short link
+    @Override
+    public String generateShortLink(PaymentEntity payment) {
+        // Generating short link with custom base62
+        // reachable through http://hostname/pay/{shortUrl}
         long value = payment.getId() * 100000 + System.currentTimeMillis() % 100000;
         return Base62.encode(BigInteger.valueOf(value));
     }
 
+    @Override
     public PaymentResponse get(Long id) {
         return PAYMENT_MAPPER.mapEntityToResponse(paymentRepository.findById(id).orElseThrow());
     }
 
+    @Override
     public List<PaymentResponse> history(Long userId) {
         return paymentRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream().map(PAYMENT_MAPPER::mapEntityToResponse).toList();
     }
 
+    @Override
     public List<PaymentResponse> getAll() {
         return paymentRepository.findAll()
                 .stream().map(PAYMENT_MAPPER::mapEntityToResponse).toList();

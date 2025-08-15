@@ -1,5 +1,6 @@
-package az.company.mspayment.service;
+package az.company.mspayment.service.concrete;
 
+import az.company.mspayment.service.abstraction.QRCodeService;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -10,7 +11,8 @@ import java.io.ByteArrayOutputStream;
 import javax.imageio.ImageIO;
 
 @Service
-public class QRCodeService {
+public class QRCodeServiceImpl implements QRCodeService {
+    @Override
     public byte[] png(String contents, int size) {
         try {
             var bitMatrix = new QRCodeWriter().encode(contents, BarcodeFormat.QR_CODE, size, size);

@@ -1,7 +1,7 @@
 package az.company.mspayment.controller;
 
 import az.company.mspayment.model.response.PaymentResponse;
-import az.company.mspayment.service.PaymentService;
+import az.company.mspayment.service.concrete.PaymentServiceImpl;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,10 +18,10 @@ import java.io.File;
 @RequestMapping("/payment/receipt")
 public class ReceiptController {
 
-    private final PaymentService paymentService;
+    private final PaymentServiceImpl paymentServiceImpl;
 
-    public ReceiptController(PaymentService paymentService) {
-        this.paymentService = paymentService;
+    public ReceiptController(PaymentServiceImpl paymentServiceImpl) {
+        this.paymentServiceImpl = paymentServiceImpl;
     }
 
     @GetMapping("/{paymentId}")
@@ -29,7 +29,7 @@ public class ReceiptController {
     public ResponseEntity<FileSystemResource> download(
             @PathVariable Long paymentId) {
 
-        PaymentResponse payment = paymentService.get(paymentId);
+        PaymentResponse payment = paymentServiceImpl.get(paymentId);
 
         String receiptPath = payment.getReceiptFilePath();
         if (receiptPath == null || receiptPath.isEmpty()) {

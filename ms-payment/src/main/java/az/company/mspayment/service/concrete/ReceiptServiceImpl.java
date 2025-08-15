@@ -1,33 +1,29 @@
-package az.company.mspayment.service;
+package az.company.mspayment.service.concrete;
 
 import az.company.mspayment.dao.entity.PaymentEntity;
+import az.company.mspayment.service.abstraction.ReceiptService;
 import com.lowagie.text.Document;
-import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.awt.image.BufferedImage;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.imageio.ImageIO;
 
 @Service
-public class ReceiptService {
+public class ReceiptServiceImpl implements ReceiptService {
 
     private final Path receiptDirectory;
-    private final QRCodeService qrService;
 
-    public ReceiptService(@Value("${receipts.dir:./receipts}") String dir,
-                          QRCodeService qrService) throws Exception {
+    public ReceiptServiceImpl(@Value("${receipts.dir:./receipts}") String dir) throws Exception {
         this.receiptDirectory = Paths.get(dir);
         Files.createDirectories(receiptDirectory);
-        this.qrService = qrService;
     }
 
+    @Override
     public Path generateReceipt(PaymentEntity payment) {
         try {
             Path out = receiptDirectory.resolve("receipt-" + payment.getId() + ".pdf");

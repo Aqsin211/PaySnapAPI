@@ -1,8 +1,9 @@
 package az.company.mspayment.controller;
 
+import az.company.mspayment.exception.NotAuthenticatedException;
 import az.company.mspayment.model.request.PaymentRequest;
 import az.company.mspayment.model.response.PaymentResponse;
-import az.company.mspayment.service.PaymentService;
+import az.company.mspayment.service.concrete.PaymentServiceImpl;
 import az.company.mspayment.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +12,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static az.company.mspayment.model.enums.ErrorMessages.NOT_LOGGED;
+
 @RestController
 @RequestMapping("/payments")
 public class PaymentController {
-    private final PaymentService paymentService;
+    private final PaymentServiceImpl paymentServiceImpl;
 
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
+    public PaymentController(PaymentServiceImpl paymentServiceImpl) {
+        this.paymentServiceImpl = paymentServiceImpl;
     }
 
     @PostMapping
@@ -25,16 +28,16 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> create(@Valid @RequestBody PaymentRequest paymentRequest) throws Exception {
         Long userId = SecurityUtils.getCurrentUserId();
         if (userId == null) {
-            return ResponseEntity.status(401).build();
+            throw new NotAuthenticatedException(NOT_LOGGED.getMessage());
         }
-        return ResponseEntity.ok(paymentService.createCheckout(userId, paymentRequest));
+        return ResponseEntity.ok(paymentServiceImpl.createCheckout(userId, paymentRequest));
     }
 
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<PaymentResponse> get(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.get(id));
+        return ResponseEntity.ok(paymentServiceImpl.get(id));
     }
 
     @GetMapping("/history")
@@ -42,15 +45,15 @@ public class PaymentController {
     public ResponseEntity<List<PaymentResponse>> history() {
         Long userId = SecurityUtils.getCurrentUserId();
         if (userId == null) {
-            return ResponseEntity.status(401).build();
+            throw new NotAuthenticatedException(NOT_LOGGED.getMessage());
         }
-        return ResponseEntity.ok(paymentService.history(userId));
+        return ResponseEntity.ok(paymentServiceImpl.history(userId));
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<List<PaymentResponse>> getAll() {
-        return ResponseEntity.ok(paymentService.getAll());
+        return ResponseEntity.ok(paymentServiceImpl.getAll());
     }
 
 }

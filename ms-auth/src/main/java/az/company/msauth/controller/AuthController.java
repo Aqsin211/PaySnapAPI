@@ -4,8 +4,8 @@ import az.company.msauth.client.UserClient;
 import az.company.msauth.model.request.AuthRequest;
 import az.company.msauth.model.response.AuthResponse;
 import az.company.msauth.model.response.UserResponse;
-import az.company.msauth.security.JwtService;
-import az.company.msauth.service.TokenBlacklistService;
+import az.company.msauth.service.concrete.JwtServiceImpl;
+import az.company.msauth.service.concrete.TokenBlacklistServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final JwtService jwtService;
+    private final JwtServiceImpl jwtServiceImpl;
     private final UserClient userClient;
-    private final TokenBlacklistService blacklistService;
+    private final TokenBlacklistServiceImpl blacklistService;
 
-    public AuthController(JwtService jwtService, UserClient userClient, TokenBlacklistService blacklistService) {
-        this.jwtService = jwtService;
+    public AuthController(JwtServiceImpl jwtServiceImpl, UserClient userClient, TokenBlacklistServiceImpl blacklistService) {
+        this.jwtServiceImpl = jwtServiceImpl;
         this.userClient = userClient;
         this.blacklistService = blacklistService;
     }
@@ -30,7 +30,7 @@ public class AuthController {
         Boolean valid = userClient.userValid("system-id", "USER", authRequest);
         if (Boolean.TRUE.equals(valid)) {
             UserResponse user = userClient.getUserByUsername("system-id", "USER", authRequest.getUsername()).getBody();
-            String token = jwtService.generateToken(user.getUserId(), user.getUsername(), user.getRole());
+            String token = jwtServiceImpl.generateToken(user.getUserId(), user.getUsername(), user.getRole());
             return ResponseEntity.ok(new AuthResponse(token));
         } else {
             return ResponseEntity.status(401).build();
@@ -43,8 +43,8 @@ public class AuthController {
         if (auth == null || !auth.startsWith("Bearer ")) return ResponseEntity.noContent().build();
         String token = auth.substring(7);
         try {
-            String jti = jwtService.extractJti(token);
-            long ttl = jwtService.getRemainingMillis(token);
+            String jti = jwtServiceImpl.extractJti(token);
+            long ttl = jwtServiceImpl.getRemainingMillis(token);
             if (jti != null && ttl > 0) {
                 blacklistService.blacklistJti(jti, ttl);
             }

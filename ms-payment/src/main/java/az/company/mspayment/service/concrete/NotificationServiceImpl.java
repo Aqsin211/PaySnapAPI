@@ -1,5 +1,6 @@
-package az.company.mspayment.service;
+package az.company.mspayment.service.concrete;
 
+import az.company.mspayment.service.abstraction.NotificationService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,17 +12,18 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 
 @Service
-public class NotificationService {
+public class NotificationServiceImpl implements NotificationService {
 
     private final JavaMailSender mailSender;
 
     @Value("${mail.from}")
     private String senderEmail;
 
-    public NotificationService(JavaMailSender mailSender) {
+    public NotificationServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
+    @Override
     public void sendPaymentStatusEmail(String recipientEmail, String username, String paymentId, String status) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -49,6 +51,7 @@ public class NotificationService {
         }
     }
 
+    @Override
     public void sendPaymentReceiptEmail(String recipientEmail, String username, String paymentId, String status, File receiptPdf) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

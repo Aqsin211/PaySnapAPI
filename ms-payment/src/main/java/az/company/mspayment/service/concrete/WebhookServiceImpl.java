@@ -1,10 +1,11 @@
-package az.company.mspayment.service;
+package az.company.mspayment.service.concrete;
 
 import az.company.mspayment.client.UserClient;
 import az.company.mspayment.dao.entity.PaymentEntity;
 import az.company.mspayment.dao.repository.PaymentRepository;
 import az.company.mspayment.model.enums.PaymentStatus;
 import az.company.mspayment.model.response.UserResponse;
+import az.company.mspayment.service.abstraction.WebhookService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.SignatureVerificationException;
@@ -24,30 +25,31 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 @Service
-public class WebhookService {
+public class WebhookServiceImpl implements WebhookService {
 
-    private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
+    private static final Logger log = LoggerFactory.getLogger(WebhookServiceImpl.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String endpointSecret;
     private final PaymentRepository paymentRepository;
-    private final NotificationService notificationService;
+    private final NotificationServiceImpl notificationServiceImpl;
     private final UserClient userClient;
-    private final ReceiptService receiptService;
+    private final ReceiptServiceImpl receiptServiceImpl;
 
-    public WebhookService(@Value("${stripe.webhook-secret}") String secret,
-                          PaymentService paymentService,
-                          PaymentRepository paymentRepository,
-                          NotificationService notificationService,
-                          UserClient userClient,
-                          ReceiptService receiptService) { // <- added
+    public WebhookServiceImpl(@Value("${stripe.webhook-secret}") String secret,
+                              PaymentServiceImpl paymentServiceImpl,
+                              PaymentRepository paymentRepository,
+                              NotificationServiceImpl notificationServiceImpl,
+                              UserClient userClient,
+                              ReceiptServiceImpl receiptServiceImpl) {
         this.endpointSecret = secret;
         this.paymentRepository = paymentRepository;
-        this.notificationService = notificationService;
+        this.notificationServiceImpl = notificationServiceImpl;
         this.userClient = userClient;
-        this.receiptService = receiptService; // <- added
+        this.receiptServiceImpl = receiptServiceImpl;
     }
 
+    @Override
     public void handle(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
         String type = event.getType();
@@ -98,7 +100,8 @@ public class WebhookService {
         }
     }
 
-    private void handleSessionEvent(Session session, String type) {
+    @Override
+    public void handleSessionEvent(Session session, String type) {
         log.info("[WEBHOOK] handleSessionEvent: type={}, sessionId={}, paymentIntent={}", type, session.getId(), session.getPaymentIntent());
         switch (type) {
             case "checkout.session.completed":
@@ -117,7 +120,8 @@ public class WebhookService {
         }
     }
 
-    private void handlePaymentIntentEvent(PaymentIntent pi, String type) {
+    @Override
+    public void handlePaymentIntentEvent(PaymentIntent pi, String type) {
         log.info("[WEBHOOK] handlePaymentIntentEvent: type={}, piId={}", type, pi.getId());
         switch (type) {
             case "payment_intent.succeeded":
@@ -131,7 +135,8 @@ public class WebhookService {
         }
     }
 
-    private void markPaymentSucceedBySession(Session session) {
+    @Override
+    public void markPaymentSucceedBySession(Session session) {
         Optional<PaymentEntity> opt = paymentRepository.findByStripeSessionId(session.getId());
         if (opt.isPresent()) {
             PaymentEntity payment = opt.get();
@@ -165,7 +170,8 @@ public class WebhookService {
         }
     }
 
-    private void markPaymentCompletedByPaymentIntent(PaymentIntent pi) {
+    @Override
+    public void markPaymentCompletedByPaymentIntent(PaymentIntent pi) {
         Optional<PaymentEntity> opt = paymentRepository.findByStripePaymentIntentId(pi.getId());
         if (opt.isPresent()) {
             PaymentEntity payment = opt.get();
@@ -198,7 +204,8 @@ public class WebhookService {
         }
     }
 
-    private void markPaymentFailedByPaymentIntent(PaymentIntent pi) {
+    @Override
+    public void markPaymentFailedByPaymentIntent(PaymentIntent pi) {
         Optional<PaymentEntity> opt = paymentRepository.findByStripePaymentIntentId(pi.getId());
         if (opt.isPresent()) {
             PaymentEntity payment = opt.get();
@@ -225,7 +232,8 @@ public class WebhookService {
         }
     }
 
-    private void markPaymentFailedBySession(Session session, PaymentStatus status) {
+    @Override
+    public void markPaymentFailedBySession(Session session, PaymentStatus status) {
         Optional<PaymentEntity> opt = paymentRepository.findByStripeSessionId(session.getId());
         if (opt.isPresent()) {
             PaymentEntity payment = opt.get();
@@ -251,21 +259,23 @@ public class WebhookService {
         }
     }
 
-    private void saveIntentIfMissing(PaymentEntity payment, String stripePaymentIntentId) {
+    @Override
+    public void saveIntentIfMissing(PaymentEntity payment, String stripePaymentIntentId) {
         if (stripePaymentIntentId != null && (payment.getStripePaymentIntentId() == null || payment.getStripePaymentIntentId().isEmpty())) {
             payment.setStripePaymentIntentId(stripePaymentIntentId);
             paymentRepository.save(payment);
         }
     }
 
-    private void sendSuccessNotification(PaymentEntity payment) {
+    @Override
+    public void sendSuccessNotification(PaymentEntity payment) {
         if (payment.getStatus() != PaymentStatus.COMPLETED && payment.getStatus() != PaymentStatus.SUCCEED) return;
 
         try {
             UserResponse user = userClient.getUser(payment.getUserId(), "USER").getBody();
             if (user != null) {
-                Path receipt = receiptService.generateReceipt(payment);
-                notificationService.sendPaymentReceiptEmail(
+                Path receipt = receiptServiceImpl.generateReceipt(payment);
+                notificationServiceImpl.sendPaymentReceiptEmail(
                         user.getGmail(),
                         user.getUsername(),
                         payment.getId().toString(),
@@ -278,11 +288,12 @@ public class WebhookService {
         }
     }
 
-    private void sendFailureNotification(PaymentEntity payment) {
+    @Override
+    public void sendFailureNotification(PaymentEntity payment) {
         try {
             UserResponse user = userClient.getUser(payment.getUserId(), "USER").getBody();
             if (user != null) {
-                notificationService.sendPaymentStatusEmail(
+                notificationServiceImpl.sendPaymentStatusEmail(
                         user.getGmail(),
                         user.getUsername(),
                         payment.getId().toString(),

@@ -1,7 +1,7 @@
 package az.company.mspayment.controller;
 
-import az.company.mspayment.service.PaymentService;
-import az.company.mspayment.service.QRCodeService;
+import az.company.mspayment.service.concrete.PaymentServiceImpl;
+import az.company.mspayment.service.concrete.QRCodeServiceImpl;
 import com.itextpdf.text.DocumentException;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -26,18 +26,18 @@ import java.nio.file.Path;
 @RestController
 @RequestMapping("/payment/qr")
 public class QRController {
-    private final QRCodeService qrService;
-    private final PaymentService paymentService;
+    private final QRCodeServiceImpl qrService;
+    private final PaymentServiceImpl paymentServiceImpl;
 
-    public QRController(QRCodeService qrService, PaymentService paymentService) {
+    public QRController(QRCodeServiceImpl qrService, PaymentServiceImpl paymentServiceImpl) {
         this.qrService = qrService;
-        this.paymentService = paymentService;
+        this.paymentServiceImpl = paymentServiceImpl;
     }
 
     @GetMapping("/{id}/png")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<byte[]> qr(@PathVariable Long id) {
-        var payment = paymentService.get(id);
+        var payment = paymentServiceImpl.get(id);
         byte[] png = qrService.png(payment.getCheckoutUrl(), 300);
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_PNG)
@@ -47,7 +47,7 @@ public class QRController {
     @GetMapping("/{id}/png-download")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<FileSystemResource> downloadQr(@PathVariable Long id) throws IOException {
-        var payment = paymentService.get(id);
+        var payment = paymentServiceImpl.get(id);
         byte[] png = qrService.png(payment.getCheckoutUrl(), 300);
 
         Path tempFile = Files.createTempFile("qr-" + id, ".png");
@@ -63,7 +63,7 @@ public class QRController {
     @GetMapping("/{id}/pdf-download")
     @PreAuthorize("hasAnyAuthority('USER','ADMIN')")
     public ResponseEntity<FileSystemResource> downloadQrPdf(@PathVariable Long id) throws IOException, DocumentException {
-        var payment = paymentService.get(id);
+        var payment = paymentServiceImpl.get(id);
         byte[] png = qrService.png(payment.getCheckoutUrl(), 300);
 
         Path tempFile = Files.createTempFile("qr-" + id, ".pdf");

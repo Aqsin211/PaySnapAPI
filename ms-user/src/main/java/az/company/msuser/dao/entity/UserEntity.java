@@ -33,6 +33,7 @@ public class UserEntity {
     String username;
     String password;
     String gmail;
+    @Column(name = "phone_number")
     String phoneNumber;
     @Enumerated(EnumType.STRING)
     UserRoles role;
