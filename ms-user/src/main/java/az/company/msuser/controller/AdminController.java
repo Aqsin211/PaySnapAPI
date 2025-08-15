@@ -26,9 +26,9 @@ public class AdminController {
     }
 
     @PostMapping
-    public String createAdmin(@RequestBody UserRequest userRequest) {
+    public ResponseEntity<String> createAdmin(@RequestBody UserRequest userRequest) {
         adminServiceImpl.createAdmin(userRequest);
-        return OPERATION_CREATED.getMessage();
+        return ResponseEntity.ok(OPERATION_CREATED.getMessage());
     }
 
     @GetMapping

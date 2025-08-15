@@ -1,7 +1,6 @@
 package az.company.gateway.filter;
 
 import io.jsonwebtoken.*;
-
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -17,8 +16,6 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-
-import static org.springframework.http.HttpMethod.POST;
 
 @Component
 public class JwtGatewayFilter implements GlobalFilter, Ordered {
@@ -37,8 +34,8 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        // allow public endpoints (make configurable)
-        if (isPublic(path, exchange)) {
+        // Allow public endpoints
+        if (isPublic(path, exchange.getRequest().getMethod())) {
             return chain.filter(exchange);
         }
 
@@ -56,7 +53,6 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-
         } catch (JwtException e) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
@@ -70,7 +66,6 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
 
         String redisKey = BLACKLIST_PREFIX + jti;
 
-        // check redis (reactive)
         return redisTemplate.hasKey(redisKey)
                 .flatMap(isBlacklisted -> {
                     if (Boolean.TRUE.equals(isBlacklisted)) {
@@ -81,7 +76,7 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
                     ServerHttpRequest mutated = exchange.getRequest().mutate()
                             .header("X-User-ID", String.valueOf(claims.get("userId")))
                             .header("X-Username", claims.get("username", String.class))
-                            .header("X-role", claims.get("role", String.class))
+                            .header("X-Role", claims.get("role", String.class))
                             .header("X-Internal-Gateway", "true")
                             .build();
 
@@ -89,30 +84,21 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
                 });
     }
 
-    private boolean isPublic(String path, ServerWebExchange exchange) {
-        HttpMethod method = exchange.getRequest().getMethod();
+    private boolean isPublic(String path, HttpMethod method) {
+        // Auth & user/admin creation
+        if ((path.equals("/auth") && HttpMethod.POST.equals(method))
+                || (path.equals("/user") && HttpMethod.POST.equals(method))
+                || (path.equals("/admin") && HttpMethod.POST.equals(method))) return true;
 
-        if (path.equals("/auth") && POST.equals(method)) {
-            return true;
-        }
+        // Payments short URLs
+        if (path.startsWith("/pay/")) return true;
 
-        if (path.startsWith("/user") && POST.equals(method)) {
-            return true;
-        }
+        // Swagger UI & API docs
+        if (path.startsWith("/swagger") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")) return true;
 
-        if (path.startsWith("/admin") && POST.equals(method)) {
-            return true;
-        }
-
-        if (path.startsWith("/pay/")) {
-            return true;
-        }
-
-
-        return false;
+        // Proxied microservices API docs
+        return path.matches("^/(user|admin|auth|payments)/v3/api-docs.*");
     }
-
-
 
     @Override
     public int getOrder() {

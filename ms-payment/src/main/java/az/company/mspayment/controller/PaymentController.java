@@ -44,13 +44,4 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getAll());
     }
 
-    @GetMapping("/payment/success")
-    public String paymentSuccess() {
-        return "Payment successful!";
-    }
-
-    @GetMapping("/payment/cancel")
-    public String paymentCancelled() {
-        return "Payment cancelled.";
-    }
 }

@@ -1,6 +1,10 @@
 spring:
+  profiles:
+    active: dev
+
   application:
     name: ms-payment
+
   datasource:
     url: jdbc:postgresql://localhost:5432/payment-database
     username:
@@ -9,6 +13,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
   mail:
     host: smtp.gmail.com
     port: 587
@@ -20,6 +25,7 @@ spring:
           auth: true
           starttls.enable: true
           ssl.trust: smtp.gmail.com
+
 server:
   port: 8083
 
@@ -32,3 +38,16 @@ stripe:
 
 mail:
   from:
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

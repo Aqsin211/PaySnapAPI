@@ -1,6 +1,9 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: api-gateway
+
   cloud:
     gateway:
       server:
@@ -10,16 +13,22 @@ spring:
               uri: http://localhost:8082
               predicates:
                 - Path=/user/**,/admin/**
+              filters:
+                - RewritePath=/user/v3/api-docs(?<segment>/.*)?, /v3/api-docs${segment}
 
             - id: ms-payment
               uri: http://localhost:8083
               predicates:
-                - Path=/payments/**,/qr/**,/receipts/**,/pay/**
+                - Path=/payments/**,/pay/**
+              filters:
+                - RewritePath=/payments/v3/api-docs(?<segment>/.*)?, /v3/api-docs${segment}
 
             - id: ms-auth
               uri: http://localhost:8085
               predicates:
                 - Path=/auth/**
+              filters:
+                - RewritePath=/auth/v3/api-docs(?<segment>/.*)?, /v3/api-docs${segment}
 
   data:
     redis:
@@ -31,10 +40,23 @@ jwt:
 
 springdoc:
   swagger-ui:
+    path: /swagger-ui/index.html
     urls:
-      - name: ms-product
-        url: http://localhost:8080/v3/api-docs
+      - name: ms-user
+        url: /user/v3/api-docs
       - name: ms-payment
-        url: http://localhost:8083/v3/api-docs
-      - name: ms-order
-        url: http://localhost:8085/v3/api-docs
+        url: /payments/v3/api-docs
+      - name: ms-auth
+        url: /auth/v3/api-docs
+    urls-primary-name: ms-user
+    display-request-duration: true
+    operations-sorter: method
+  api-docs:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true

@@ -24,6 +24,7 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers("/stripe/webhook", "/stripe/webhook/**").permitAll()
                         .requestMatchers("/pay/**").permitAll()
                         .anyRequest().authenticated()
@@ -38,6 +39,11 @@ public class SecurityConfig {
                 throws IOException, jakarta.servlet.ServletException {
 
             String path = request.getRequestURI();
+
+            if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+                chain.doFilter(request, response);
+                return;
+            }
 
             if (path.startsWith("/stripe/webhook") || path.startsWith("/pay/")) {
                 chain.doFilter(request, response);

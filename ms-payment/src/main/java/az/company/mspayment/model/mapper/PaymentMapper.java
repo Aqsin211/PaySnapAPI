@@ -8,6 +8,7 @@ public enum PaymentMapper {
 
     public PaymentResponse mapEntityToResponse(PaymentEntity payment) {
         return PaymentResponse.builder()
+                .userId(payment.getUserId())
                 .paymentId(payment.getId())
                 .shortUrl(payment.getShortUrl())
                 .checkoutUrl(payment.getCheckoutUrl())

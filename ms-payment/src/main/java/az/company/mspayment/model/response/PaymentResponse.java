@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 @Builder
 @AllArgsConstructor
 public class PaymentResponse {
+    private Long userId;
     private Long paymentId;
     private String shortUrl;
     private String checkoutUrl;
